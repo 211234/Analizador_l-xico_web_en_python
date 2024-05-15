@@ -1,0 +1,140 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Lexical Analyzer</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            background-color: #f4f4f4;
+        }
+        .container {
+            width: 80%;
+            margin: auto;
+            overflow: hidden;
+            background: white;
+            padding: 20px;
+            border-radius: 10px;
+            box-shadow: 0 0 10px rgba(0,0,0,0.1);
+        }
+        #results, #fileContent {
+            margin-top: 20px;
+            padding: 10px;
+            background: #f9f9f9;
+            border: 1px solid #ddd;
+            border-radius: 5px;
+            max-height: 300px;
+            overflow-y: auto;
+        }
+        table {
+            width: 100%;
+            border-collapse: collapse;
+        }
+        table, th, td {
+            border: 1px solid black;
+        }
+        th, td {
+            padding: 8px;
+            text-align: center;
+        }
+        th {
+            background-color: #f2f2f2;
+        }
+        button {
+            padding: 10px 20px;
+            margin: 10px 5px;
+            border: none;
+            background-color: #007BFF;
+            color: white;
+            cursor: pointer;
+            border-radius: 5px;
+        }
+        button:hover {
+            background-color: #0056b3;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>Lexical Analyzer</h1>
+        <form id="uploadForm" enctype="multipart/form-data">
+            <label for="file">Choose a text file:</label>
+            <input type="file" id="file" name="file" accept=".txt" required>
+            <br><br>
+            <button type="button" onclick="analyzeFile()">Analyze</button>
+            <button type="button" onclick="clearResults()">Clear</button>
+        </form>
+        <div id="fileContent"></div>
+        <div id="results"></div>
+    </div>
+    <script>
+        function analyzeFile() {
+            const fileInput = document.getElementById('file');
+            const file = fileInput.files[0];
+
+            if (file) {
+                const reader = new FileReader();
+                reader.onload = function(e) {
+                    const content = e.target.result;
+                    document.getElementById('fileContent').innerText = content;
+
+                    const formData = new FormData();
+                    formData.append('file', file);
+
+                    fetch('/analyze', {
+                        method: 'POST',
+                        body: formData
+                    })
+                    .then(response => response.json())
+                    .then(data => {
+                        displayResults(data);
+                    })
+                    .catch(error => console.error('Error:', error));
+                };
+                reader.readAsText(file);
+            } else {
+                alert('Please select a file first.');
+            }
+        }
+
+        function displayResults(data) {
+            let resultsDiv = document.getElementById('results');
+            resultsDiv.innerHTML = '';
+
+            if (data.tokens) {
+                let table = '<table><tr><th>Line</th><th>Value</th><th>Type</th></tr>';
+                data.tokens.forEach(token => {
+                    table += `<tr><td>${token[0]}</td><td>${token[1]}</td><td>${token[2]}</td></tr>`;
+                });
+                table += '</table>';
+                resultsDiv.innerHTML += '<h2>Tokens</h2>' + table;
+            }
+
+            if (data.reserved) {
+                let table = '<table><tr><th>Word</th><th>Type</th></tr>';
+                for (const [word, type] of Object.entries(data.reserved)) {
+                    table += `<tr><td>${word}</td><td>${type}</td></tr>`;
+                }
+                table += '</table>';
+                resultsDiv.innerHTML += '<h2>Reserved Words</h2>' + table;
+            }
+
+            if (data.identificadores) {
+                let table = '<table><tr><th>Identifier</th></tr>';
+                data.identificadores.forEach(id => {
+                    table += `<tr><td>${id}</td></tr>`;
+                });
+                table += '</table>';
+                resultsDiv.innerHTML += '<h2>Specific Identifiers</h2>' + table;
+            }
+        }
+
+        function clearResults() {
+            document.getElementById('fileContent').innerHTML = '';
+            document.getElementById('results').innerHTML = '';
+            document.getElementById('uploadForm').reset();
+        }
+    </script>
+</body>
+</html>
